@@ -338,6 +338,14 @@ func (c *AsyncClient) HMGet(ctx context.Context, key string, field []string, cb 
 	})
 }
 
+func (c *AsyncClient) HDel(ctx context.Context, key string, field ...string) {
+	c.addCmd(&hdelCmd{
+		ctx:   ctx,
+		key:   key,
+		field: field,
+	})
+}
+
 func (c *AsyncClient) SetNX(ctx context.Context, key string, value interface{}, cb func(ok bool)) error {
 	req, err := Encode(value)
 	if err != nil {

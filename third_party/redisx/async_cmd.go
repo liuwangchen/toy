@@ -235,6 +235,27 @@ func (c *hmgetCmd) Context() context.Context {
 	return c.ctx
 }
 
+type hdelCmd struct {
+	ctx   context.Context
+	key   string
+	field []string
+
+	err error
+}
+
+func (c *hdelCmd) Do(cli *Client) error {
+	c.err = cli.HDel(c.key, c.field...)
+	return c.err
+}
+
+func (c *hdelCmd) Key() string {
+	return c.key
+}
+
+func (c *hdelCmd) Context() context.Context {
+	return c.ctx
+}
+
 // doCmd server命令
 type doCmd struct {
 	ctx context.Context

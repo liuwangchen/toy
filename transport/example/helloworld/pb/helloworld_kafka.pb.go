@@ -6,9 +6,9 @@ package pb
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	middleware "github.com/liuwangchen/toy/transport/middleware"
 	kafkarpc "github.com/liuwangchen/toy/transport/rpc/kafkarpc"
-	empty "github.com/golang/protobuf/ptypes/empty"
 )
 
 // This is a compile-time assertion to ensure that this generated file

@@ -6,11 +6,11 @@ package pb
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	async "github.com/liuwangchen/toy/pkg/async"
 	middleware "github.com/liuwangchen/toy/transport/middleware"
 	httprpc "github.com/liuwangchen/toy/transport/rpc/httprpc"
 	binding "github.com/liuwangchen/toy/transport/rpc/httprpc/binding"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	reflect "reflect"
 )
 

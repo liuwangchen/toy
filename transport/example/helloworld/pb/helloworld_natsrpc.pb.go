@@ -7,11 +7,11 @@ package pb
 import (
 	bytes "bytes"
 	context "context"
+	proto "github.com/golang/protobuf/proto"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	async "github.com/liuwangchen/toy/pkg/async"
 	middleware "github.com/liuwangchen/toy/transport/middleware"
 	natsrpc "github.com/liuwangchen/toy/transport/rpc/natsrpc"
-	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	template "text/template"
 )
 
@@ -38,7 +38,7 @@ func RegisterGreeterNatsServer(conn *natsrpc.ServerConn, s GreeterNatsService, o
 	opts = append(opts, natsrpc.WithServiceMethodSequence(map[string]bool{
 		"SayHello": true,
 	}))
-	return conn.Register("git.jiemogame.com.karma.ratel.git.transport.examples.helloworld.pb.Greeter", s, opts...)
+	return conn.Register("github.com.liuwangchen.toy.transport.examples.helloworld.pb.Greeter", s, opts...)
 }
 
 // GreeterNatsClient
@@ -60,7 +60,7 @@ func NewGreeterNatsClient(conn *natsrpc.ClientConn, opts ...natsrpc.ClientOption
 }
 func (c *_GreeterNatsClient) SayHello(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
 	rep := &HelloReply{}
-	err := c.c.Request(ctx, "git.jiemogame.com.karma.ratel.git.transport.examples.helloworld.pb.Greeter", "SayHello", req, rep)
+	err := c.c.Request(ctx, "github.com.liuwangchen.toy.transport.examples.helloworld.pb.Greeter", "SayHello", req, rep)
 	return rep, err
 }
 
@@ -111,7 +111,7 @@ func RegisterPusherNatsServer(conn *natsrpc.ServerConn, s PusherNatsService, opt
 	tmpl, _ := template.New("").Parse("{{.Id}}")
 	_ = tmpl.Execute(&buf, s)
 	opts = append(opts, natsrpc.WithServiceTopic(buf.String()))
-	return conn.Register("git.jiemogame.com.karma.ratel.git.transport.examples.helloworld.pb.Pusher", s, opts...)
+	return conn.Register("github.com.liuwangchen.toy.transport.examples.helloworld.pb.Pusher", s, opts...)
 }
 
 // PusherNatsClient
@@ -136,7 +136,7 @@ func (c *_PusherNatsClient) Push(ctx context.Context, notify *PushNotify) error 
 	tmpl, _ := template.New("").Parse("{{.Id}}")
 	_ = tmpl.Execute(&buf, notify)
 	ctx = natsrpc.WithCallTopicContext(ctx, buf.String())
-	return c.c.Publish(ctx, "git.jiemogame.com.karma.ratel.git.transport.examples.helloworld.pb.Pusher", "Push", notify)
+	return c.c.Publish(ctx, "github.com.liuwangchen.toy.transport.examples.helloworld.pb.Pusher", "Push", notify)
 }
 
 // Async
