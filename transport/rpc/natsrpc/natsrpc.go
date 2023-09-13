@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/liuwangchen/toy/transport/middleware"
+	"github.com/nats-io/nats.go"
 )
 
 const (
