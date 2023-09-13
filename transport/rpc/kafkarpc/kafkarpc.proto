@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package kafka;
+option go_package = "github.com/liuwangchen/toy/transport/rpc/kafkarpc";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.ServiceOptions {
+  string dynamicTopic = 44232; // topic
+}
+
+extend google.protobuf.MethodOptions {
+  bool autoAck = 2460; // 是否自动ack
+  string queue = 2461; // 消费组
+}
+

@@ -1,0 +1,31 @@
+filter:
+  - tag: stdout
+    level: DEBUG
+    type: console
+    property: [ ]
+  - tag: file
+    level: DEBUG
+    type: file
+    property:
+      - name: filename
+        value: test.log
+      - name: format
+        value: "[%D %T] [%L] (%S) %M"
+      - name: rotate
+        value: "false"
+      - name: maxsize
+        value: 0M
+      - name: maxlines
+        value: 0K
+      - name: daily
+        value: "true"
+  - tag: kafka
+    level: DEBUG
+    type: kafka
+    property:
+      - name: addr
+        value: 192.168.1.172:9092
+      - name: topic
+        value: logtest
+      - name: key
+        value: logtest

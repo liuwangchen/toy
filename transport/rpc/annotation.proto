@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package rpc;
+option go_package = "github.com/liuwangchen/toy/transport/rpc";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.ServiceOptions {
+  bool serviceAsync = 6361; // 服务async
+}
+
+extend google.protobuf.MethodOptions {
+  bool async = 5361; // 是否是async
+}
+

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package natsrpc;
+option go_package = "github.com/liuwangchen/toy/transport/rpc/natsrpc";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.ServiceOptions {
+  string serviceQueue = 43231; // service级别queue
+  string topic = 43232; // topic
+}
+
+extend google.protobuf.MethodOptions {
+  string methodQueue = 2362; // 方法级别的queue
+  int32 reqId = 2363; // reqId
+  int32 respId = 2364; // respId
+  bool sequence = 2365; // sequence
+}
+
+// Request 请求
+message Request {
+  bytes payload = 1; // 包体
+  map<string, string> header = 2; // 包头
+}
+
+// Reply 返回
+message Reply {
+  bytes payload = 1; // 包体
+  string error = 2; // 错误
+}
+

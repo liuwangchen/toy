@@ -1,0 +1,51 @@
+{{$svrType := .ServiceType}}
+{{$svrName := .ServiceName}}
+type {{.ServiceType}}KafkaServer interface {
+{{- range .MethodSets}}
+	{{.Name}}(context.Context, *{{.Request}}) error
+{{- end}}
+}
+
+func Register{{.ServiceType}}KafkaServer(s *kafkarpc.Server, srv {{.ServiceType}}KafkaServer) {
+{{- range .Methods}}
+	// 特等生成
+	s.Subscribe("{{$svrType}}.{{.Name}}", func(ctx context.Context, b []byte) error {
+		msg := new({{.Request}})
+		err := s.GetCodec().Unmarshal(b, msg)
+		if err != nil {
+			return err
+		}
+		// 特定生成
+		h := func(ctx context.Context, req1 interface{}) (reply interface{}, err error) {
+			// 生成
+			err = srv.{{.Name}}(ctx, req1.(*{{.Request}}))
+		    return nil, err
+		}
+		if len(s.GetMiddlewares()) > 0 {
+			h = middleware.Chain(s.GetMiddlewares()...)(h)
+		}
+		_, err = h(ctx, msg)
+		return err
+	}, {{default true .AutoAck}}, "{{default "" .Queue}}")
+{{- end}}
+}
+
+type {{.ServiceType}}KafkaClient interface {
+{{- range .MethodSets}}
+	{{.Name}}(ctx context.Context, req *{{.Request}}) error
+{{- end}}
+}
+
+type {{.ServiceType}}KafkaClientImpl struct{
+	c *kafkarpc.Client
+}
+
+func New{{.ServiceType}}KafkaClient (client *kafkarpc.Client) {{.ServiceType}}KafkaClient {
+    return &{{.ServiceType}}KafkaClientImpl{client}
+}
+
+{{range .MethodSets}}
+func (c *{{$svrType}}KafkaClientImpl) {{.Name}}(ctx context.Context, in *{{.Request}}) error {
+    return c.c.Publish(ctx, "{{$svrType}}.{{.Name}}", in)
+}
+{{end}}

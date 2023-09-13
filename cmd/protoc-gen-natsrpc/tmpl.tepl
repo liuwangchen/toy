@@ -1,0 +1,287 @@
+{{$goPackageName := .GoPackageName}}
+{{$serviceType := .ServiceType}}
+{{$serviceInterface := print .ServiceType "NatsService"}}
+{{$serviceWrapperName := print .ServiceType "NatsServiceWrapper"}}
+{{$topic := .Topic}}
+{{$serviceQueue := .Queue}}
+{{$hasServiceQueue := .HasServiceQueue}}
+{{$hasMethodQueue := .HasMethodQueue}}
+{{$hasMethodSequence := .HasMethodSequence}}
+{{$hasMethodReqRespId := .HasMethodReqRespId}}
+{{$serviceAsync := .Async}}
+{{$clientInterface := print .ServiceType "NatsClient"}}
+{{$clientWrapperName := print "_" .ServiceType "NatsClient"}}
+{{$asyncClientInterface := print .ServiceType "AsyncNatsClient"}}
+{{$asyncClientWrapperName := print "_" .ServiceType "AsyncNatsClient"}}
+
+// {{ $serviceInterface }} {{ .Comment }} service interface
+type {{ $serviceInterface }} interface {
+{{- range .Methods }}
+// {{ .MethodName }} call {{ .Comment }}
+	{{- if eq .Publish false }}
+		{{- if .Async }}
+		{{ .MethodName }}(ctx context.Context, req *{{ .Request }}, cb func(*{{ .Reply }}, error))
+		{{- else }}
+		{{ .MethodName }}(ctx context.Context, req *{{ .Request }}) (*{{ .Reply }}, error)
+		{{- end }}
+	{{- else }}
+		{{ .MethodName }}(ctx context.Context, req *{{ .Request }}) error
+	{{- end }}
+{{- end }}
+}
+
+{{- if $serviceAsync }}
+func RegisterAsync{{ $serviceType }}NatsServer(conn *natsrpc.ServerConn, as async.IAsync, s {{ $serviceInterface }}, opts ...natsrpc.ServiceOption) error {
+	ss := &{{ $serviceWrapperName }}{
+		as: as,
+		s:    s,
+	}
+	{{- if $topic }}
+	var buf bytes.Buffer
+	tmpl, _ := template.New("").Parse("{{ $topic }}")
+	_ = tmpl.Execute(&buf, s)
+	opts = append(opts, natsrpc.WithServiceTopic(buf.String()))
+	{{- end }}
+
+    {{- if $hasServiceQueue }}
+	opts = append(opts, natsrpc.WithServiceQueue("{{ $serviceQueue }}"))
+	{{- end }}
+
+    {{- if $hasMethodQueue }}
+	opts = append(opts, natsrpc.WithServiceMethodQueue(map[string]string{
+		{{- range .Methods }}
+			{{- if .HasQueue }}
+		"{{ .MethodName }}":"{{ .Queue }}",
+			{{- end }}
+		{{- end }}
+	}))
+	{{- end }}
+
+    {{- if $hasMethodSequence }}
+	opts = append(opts, natsrpc.WithServiceMethodSequence(map[string]bool{
+		{{- range .Methods }}
+			{{- if .HasSequence }}
+		"{{ .MethodName }}":true,
+			{{- end }}
+		{{- end }}
+	}))
+	{{- end }}
+
+	{{- if $hasMethodReqRespId }}
+	opts = append(opts, natsrpc.WithServiceMethodReqRspIds(map[string][2]int32{
+		{{- range .Methods }}
+			{{- if .HasReqRespId }}
+		"{{ .MethodName }}": {{ "{" }}{{ .ReqId }}, {{ .RespId }}{{ "}" }},
+			{{- end }}
+		{{- end }}
+	}))
+	{{- end }}
+	return conn.Register("{{ $goPackageName }}.{{ $serviceType }}", ss, opts...)
+}
+
+// {{ $serviceWrapperName }} DO NOT USE
+type {{ $serviceWrapperName }} struct {
+	as async.IAsync
+	s    {{ $serviceInterface }}
+}
+{{- range .Methods }}
+// {{ .MethodName }} DO NOT USE
+	{{- if eq .Publish true }}
+		func (s *{{ $serviceWrapperName }}){{ .MethodName }}(ctx context.Context, req *{{ .Request }}) error {
+			_, err := s.as.Do(ctx, func() (interface{}, error) {
+            	err := s.s.{{ .MethodName }}(ctx , req)
+            	return nil, err
+            })
+            return err
+		}
+	{{- else }}
+	    {{- if .Async }}
+		func (s *{{ $serviceWrapperName }}){{ .MethodName }}(ctx context.Context, req *{{ .Request }})(*{{ .Reply }}, error) {
+			f := func(cb func(interface{}, error)) {
+				s.s.{{ .MethodName }}(ctx, req, func(r *{{ .Reply }}, e error) {
+					cb(r,e)
+				})
+			}
+			temp, err := s.as.AsyncDo(ctx, f)
+            if temp == nil {
+				return nil, err
+			}
+			return temp.(*{{ .Reply }}), err
+		}
+    	{{- else }}
+		func (s *{{ $serviceWrapperName }}){{ .MethodName }}(ctx context.Context, req *{{ .Request }})(*{{ .Reply }}, error) {
+		    temp, err := s.as.Do(ctx, func() (interface{}, error) {
+        		return s.s.{{ .MethodName }}(ctx, req)
+        	})
+            if temp == nil {
+                return nil, err
+            }
+        	return temp.(*{{ .Reply }}), err
+		}
+    	{{- end }}
+	{{- end }}
+{{- end }}
+{{- else }}
+// Register{{ $serviceType }} register {{ $serviceType }} service
+func Register{{ $serviceType }}NatsServer(conn *natsrpc.ServerConn, s {{ $serviceInterface }}, opts ...natsrpc.ServiceOption) error {
+	{{- if $topic }}
+	var buf bytes.Buffer
+	tmpl, _ := template.New("").Parse("{{ $topic }}")
+	_ = tmpl.Execute(&buf, s)
+	opts = append(opts, natsrpc.WithServiceTopic(buf.String()))
+	{{- end }}
+
+	{{- if $hasServiceQueue }}
+	opts = append(opts, natsrpc.WithServiceQueue("{{ $serviceQueue }}"))
+	{{- end }}
+
+    {{- if $hasMethodQueue }}
+	opts = append(opts, natsrpc.WithServiceMethodQueue(map[string]string{
+		{{- range .Methods }}
+			{{- if .HasQueue }}
+		"{{ .MethodName }}":"{{ .Queue }}",
+			{{- end }}
+		{{- end }}
+	}))
+	{{- end }}
+
+	{{- if $hasMethodSequence }}
+    opts = append(opts, natsrpc.WithServiceMethodSequence(map[string]bool{
+  	    {{- range .Methods }}
+  		    {{- if .HasSequence }}
+  	    "{{ .MethodName }}":true,
+  		    {{- end }}
+  	    {{- end }}
+    }))
+    {{- end }}
+
+
+	{{- if $hasMethodReqRespId }}
+		opts = append(opts, natsrpc.WithServiceMethodReqRspIds(map[string][2]int32{
+		{{- range .Methods }}
+			{{- if .HasReqRespId }}
+		"{{ .MethodName }}": {{ "{" }}{{ .ReqId }}, {{ .RespId }}{{ "}" }},
+			{{- end }}
+	{{- end }}
+	}))
+	{{- end }}
+	return conn.Register("{{ $goPackageName }}.{{ $serviceType }}", s, opts...)
+}
+{{- end }}
+
+
+
+// {{ $clientInterface }}
+type {{ $clientInterface }} interface {
+{{- range .Methods }}
+// {{ .MethodName }}
+	{{- if eq .Publish false }}
+		{{ .MethodName }}(ctx context.Context, req *{{ .Request }})(*{{ .Reply }}, error)
+	{{- else }}
+		{{ .MethodName }}(ctx context.Context, notify *{{ .Request }}) error
+	{{- end }}
+{{- end }}
+}
+
+type {{ $clientWrapperName }} struct {
+	c *natsrpc.Client
+}
+
+// New{{ $clientInterface }}
+func New{{ $clientInterface }}(conn *natsrpc.ClientConn, opts ...natsrpc.ClientOption) {{ $clientInterface }} {
+	ret := &{{ $clientWrapperName }}{
+		c: natsrpc.NewClient(conn, opts...),
+	}
+	return ret
+}
+
+
+{{- range .Methods }}
+	{{- if eq .Publish false }}
+		func (c *{{ $clientWrapperName }}) {{ .MethodName }}(ctx context.Context, req *{{ .Request }})(*{{ .Reply }}, error) {
+			rep := &{{ .Reply }}{}
+		{{- if $topic }}
+			var buf bytes.Buffer
+			tmpl, _ := template.New("").Parse("{{ $topic }}")
+			_ = tmpl.Execute(&buf, req)
+			ctx = natsrpc.WithCallTopicContext(ctx, buf.String())
+		{{- end }}
+			err := c.c.Request(ctx, "{{ $goPackageName }}.{{ $serviceType }}", {{- if .HasReqRespId -}}"{{ .ReqId }}"{{- else -}}"{{ .MethodName }}"{{- end -}}, req, rep)
+				return rep, err
+			}
+	{{- else }}
+		func (c *{{ $clientWrapperName }}) {{ .MethodName }}(ctx context.Context, notify *{{ .Request }}) error {
+		{{- if $topic }}
+			var buf bytes.Buffer
+			tmpl, _ := template.New("").Parse("{{ $topic }}")
+			_ = tmpl.Execute(&buf, notify)
+			ctx = natsrpc.WithCallTopicContext(ctx, buf.String())
+		{{- end }}
+			return c.c.Publish(ctx, "{{ $goPackageName }}.{{ $serviceType }}", {{- if .HasReqRespId -}}"{{ .ReqId }}"{{- else -}}"{{ .MethodName }}"{{- end -}}, notify)
+		}
+	{{- end }}
+{{- end }}
+
+
+
+// Async
+// {{ $asyncClientInterface }}
+type {{ $asyncClientInterface }} interface {
+{{- range .Methods }}
+// {{ .MethodName }}
+	{{- if eq .Publish false }}
+		{{ .MethodName }}(ctx context.Context, req *{{ .Request }}, cb func(*{{ .Reply }}, error))
+	{{- else }}
+		{{ .MethodName }}(ctx context.Context, notify *{{ .Request }}) error
+	{{- end }}
+{{- end }}
+    SyncClient() {{ $clientInterface }}
+}
+
+type {{ $asyncClientWrapperName }} struct {
+	c {{ $clientInterface }}
+	as async.IAsync
+}
+
+// New{{ $asyncClientInterface }}
+func New{{ $asyncClientInterface }}(conn *natsrpc.ClientConn, as async.IAsync, opts ...natsrpc.ClientOption) {{ $asyncClientInterface }} {
+	ret := &{{ $asyncClientWrapperName }}{
+		c: New{{ $clientInterface }}(conn, opts...),
+		as: as,
+	}
+	return ret
+}
+
+func (c *{{ $asyncClientWrapperName }}) SyncClient() {{ $clientInterface }} {
+	return c.c
+}
+
+{{- range .Methods }}
+	{{- if eq .Publish false }}
+		func (c *{{ $asyncClientWrapperName }}) {{ .MethodName }}(ctx context.Context, req *{{ .Request }}, cb func(*{{ .Reply }}, error)) {
+			reqClone := proto.Clone(req)
+			go func() {
+		{{- if $topic }}
+				var buf bytes.Buffer
+				tmpl, _ := template.New("").Parse("{{ $topic }}")
+				_ = tmpl.Execute(&buf, req)
+				ctx = natsrpc.WithCallTopicContext(ctx, buf.String())
+		{{- end }}
+                rep, err := c.c.{{ .MethodName }}(ctx, reqClone.(*{{ .Request }}))
+                c.as.DoWithNoRet(ctx, func() {
+                	cb(rep, err)
+                })
+			}()
+		}
+	{{- else }}
+		func (c *{{ $asyncClientWrapperName }}) {{ .MethodName }}(ctx context.Context, notify *{{ .Request }}) error {
+		{{- if $topic }}
+			var buf bytes.Buffer
+			tmpl, _ := template.New("").Parse("{{ $topic }}")
+			_ = tmpl.Execute(&buf, notify)
+			ctx = natsrpc.WithCallTopicContext(ctx, buf.String())
+		{{- end }}
+			return c.c.{{ .MethodName }}(ctx, notify)
+		}
+	{{- end }}
+{{- end }}
