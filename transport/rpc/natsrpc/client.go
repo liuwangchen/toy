@@ -10,6 +10,7 @@ import (
 	"github.com/liuwangchen/toy/pkg/copier"
 	"github.com/liuwangchen/toy/transport/middleware"
 	"github.com/liuwangchen/toy/transport/middleware/trace"
+	"github.com/nats-io/nats.go"
 )
 
 var _ ISetOption = (*ClientConn)(nil)

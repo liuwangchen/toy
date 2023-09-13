@@ -10,6 +10,7 @@ require (
 	github.com/Shopify/sarama v1.26.4
 	github.com/a8m/envsubst v1.4.2
 	github.com/emirpasic/gods v1.18.1
+	github.com/go-playground/form/v4 v4.2.0
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0

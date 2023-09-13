@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"github.com/liuwangchen/toy/transport/encoding"
+	"gopkg.in/yaml.v2"
 )
 
 // Name is the name registered for the yaml codec.
