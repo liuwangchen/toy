@@ -11,7 +11,7 @@ import (
 
 func TestGrab_Run(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints: []string{"192.168.1.153:2379"},
+		Endpoints: []string{"localhost:2379"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -24,6 +24,6 @@ func TestGrab_Run(t *testing.T) {
 		return
 	}
 	fmt.Println("grab data ", string(b))
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 	grab.Close()
 }
