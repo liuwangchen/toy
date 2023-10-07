@@ -38,7 +38,7 @@ func NewClientConn(opts ...Option) (*ClientConn, error) {
 	}
 	// 如果未提供conn，则创建一个conn
 	if c.conn == nil {
-		conn, err := nats.Connect(c.address)
+		conn, err := nats.Connect(c.address, c.natsOptions...)
 		if err != nil {
 			return nil, err
 		}
